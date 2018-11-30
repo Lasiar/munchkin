@@ -9,7 +9,9 @@ import (
 )
 
 const (
+	alreadyRegistered 	string = "Вы уже зарегестрированы"
 	errorJsonRead       string = "Ошибка чтения запроса"
+	errorCookie         string = "Ошибка чтения cookie"
 	internalServerError string = "Внутренняя ошибка"
 )
 
@@ -43,7 +45,6 @@ func (wh webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[WEB] %v %v %v", e.Code, e.Message, e.Error)
 
 		w.WriteHeader(http.StatusInternalServerError)
-
 
 		if err := encoder.Encode(struct {
 			Message   string

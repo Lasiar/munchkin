@@ -17,6 +17,20 @@ type request struct {
 func UserRegistrator(w http.ResponseWriter, r *http.Request) *webError {
 	req := new(request)
 
+	cookie, err := r.Cookie("userName")
+	if err != nil {
+		return &webError{fmt.Errorf("[web] error coockie read %v", err), errorCookie, 001}
+	}
+
+	users, err := modal.New().GetUserByCookie(cookie.Value)
+	if err != nil {
+		return &webError{fmt.Errorf("[web] auth %v", err), internalServerError, 001}
+	}
+
+	if len(users) != 0 {
+		return &webError{fmt.Errorf("[web] decode json %v", err), fmt.Sprintf("%v: %v", alreadyRegistered, users[0].Login), 001}
+	}
+
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(req); err != nil {
 		return &webError{fmt.Errorf("[web] decode json %v", err), errorJsonRead, 001}

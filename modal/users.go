@@ -60,6 +60,33 @@ func (d *Database) GetAllLogon() []UserLogon {
 	return *ul
 }
 
+func (d *Database) GetUserByCookie(cookie ...string) ([]UserLogon, error) {
+	rows, err := d.DB.Query("select distinct ulg.id, ulg.login, ulg.pass from  users.session uss  inner join users.logon as ulg on ulg.id = uss.id_user and uss.session_cookie = $1", cookie[0]) // TODO: fix in array search
+	if err != nil {
+		return nil, err
+	}
+
+	ul := new([]UserLogon)
+
+	for rows.Next() {
+
+		var (
+			id    int
+			login string
+			pass  string
+		)
+
+		if err := rows.Scan(&id, &login, &pass); err != nil {
+			return nil, err
+		}
+
+		*ul = append(*ul, UserLogon{id, login, pass})
+
+	}
+	return *ul, nil
+
+}
+
 func (d *Database) GetUserByLogin(login ...string) ([]UserLogon, error) {
 	rows, err := d.DB.Query("select * from users.logon  where login = $1", login[0]) // TODO: fix in array search
 	if err != nil {
