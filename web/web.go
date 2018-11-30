@@ -39,7 +39,11 @@ func MiddlewareCORS(next http.Handler) http.Handler {
 func (wh webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if e := wh(w, r); e != nil {
 		encoder := json.NewEncoder(w)
+
+		log.Printf("[WEB] %v %v %v", e.Code, e.Message, e.Error)
+
 		w.WriteHeader(http.StatusInternalServerError)
+
 
 		if err := encoder.Encode(struct {
 			Message   string

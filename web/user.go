@@ -6,6 +6,7 @@ import (
 	"log"
 	"munchkin/modal"
 	"net/http"
+	"time"
 )
 
 type request struct {
@@ -35,15 +36,23 @@ func UserAuthentications(w http.ResponseWriter, r *http.Request) *webError {
 		return &webError{fmt.Errorf("[web] decode json %v", err), errorJsonRead, 001}
 	}
 
-	valid, err := modal.New().Authentications(req.Login, req.Password)
+	hashCookie, auth, err := modal.New().Authentications(req.Login, req.Password)
 	if err != nil {
 		return &webError{fmt.Errorf("[db] %v", err), internalServerError, 201}
 	}
 
+	if !auth {
+		return &webError{fmt.Errorf("[WEB] error auth %v", err), internalServerError, 403}
+	}
+
+	cookie := http.Cookie{Name: "userName", Value: hashCookie, Expires: time.Now().Add(365 * 24 * time.Hour)}
+
+	http.SetCookie(w, &cookie)
+
 	encoder := json.NewEncoder(w)
 	if err := encoder.Encode(struct {
 		Aut bool `json:"auth"`
-	}{valid}); err != nil {
+	}{false}); err != nil {
 		log.Printf("[web] encode %v", err)
 	}
 	return nil

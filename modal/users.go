@@ -1,9 +1,13 @@
 package modal
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"strconv"
 )
 
 type UserLogon struct {
@@ -98,18 +102,40 @@ func (d *Database) SetUser(login, password string) error {
 	return nil
 }
 
-func (d *Database) Authentications(login, password string) (bool, error) {
+func (d *Database) Authentications(login, password string) (string, bool, error) {
 
 	ul, err := d.GetUserByLogin(login)
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 
 	fmt.Println(ul)
 
 	err = bcrypt.CompareHashAndPassword([]byte(ul[0].Pass), []byte(password))
 	if err != nil {
-		return false, nil
+		switch err.(type) {
+		case error:
+			return "", false, nil
+		default:
+			return "", false, err
+		}
 	}
-	return true, nil
+
+	h := hmac.New(sha256.New, []byte(ul[0].Login+strconv.Itoa(ul[0].Id)))
+
+	shaCookie := hex.EncodeToString(h.Sum(nil))
+
+	if err := d.SetCookie(ul[0].Id, shaCookie); err != nil {
+		return "", false, fmt.Errorf("[db] set cookie %v", err)
+	}
+
+	return shaCookie, true, nil
+}
+
+func (d *Database) SetCookie(idUser int, cookie string) error {
+
+	if _, err := d.DB.Exec("insert into users.session (id_user, session_cookie) values($1,$2)", idUser, cookie); err != nil {
+		return err
+	}
+	return nil
 }
