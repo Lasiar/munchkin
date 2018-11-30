@@ -13,37 +13,32 @@ type request struct {
 	Login    string `json:"login"`
 }
 
-func UserRegistrator(w http.ResponseWriter, r *http.Request) {
-
+func UserRegistrator(w http.ResponseWriter, r *http.Request) *webError {
 	req := new(request)
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(req); err != nil {
-		log.Printf("[Encode json] registration %v", err)
-		return
+		return &webError{fmt.Errorf("[web] decode json %v", err), errorJsonRead, 001}
 	}
 
 	if err := modal.New().SetUser(req.Login, req.Password); err != nil {
-		log.Printf("[db] registration %v", err)
-		return
+		return &webError{fmt.Errorf("[db] %v", err), internalServerError, 201}
 	}
+	return nil
 }
 
-func UserAuthentications(w http.ResponseWriter, r *http.Request) {
-
+func UserAuthentications(w http.ResponseWriter, r *http.Request) *webError {
 	req := new(request)
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(req); err != nil {
-		log.Printf("[Encode json] autentications %v", err)
+		return &webError{fmt.Errorf("[web] decode json %v", err), errorJsonRead, 001}
 	}
 
 	valid, err := modal.New().Authentications(req.Login, req.Password)
 	if err != nil {
-		log.Printf("[DB]  Authentications %v", err)
+		return &webError{fmt.Errorf("[db] %v", err), internalServerError, 201}
 	}
-
-	fmt.Println(valid,err)
 
 	encoder := json.NewEncoder(w)
 	if err := encoder.Encode(struct {
@@ -51,4 +46,5 @@ func UserAuthentications(w http.ResponseWriter, r *http.Request) {
 	}{valid}); err != nil {
 		log.Printf("[web] encode %v", err)
 	}
+	return nil
 }

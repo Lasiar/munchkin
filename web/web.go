@@ -1,11 +1,25 @@
 package web
 
 import (
+	"encoding/json"
 	"log"
 	"munchkin/system"
 	"net/http"
 	"time"
 )
+
+const (
+	errorJsonRead       string = "Ошибка чтения запроса"
+	internalServerError string = "Внутренняя ошибка"
+)
+
+type webError struct {
+	Error   error
+	Message string
+	Code    int
+}
+
+type webHandler func(http.ResponseWriter, *http.Request) *webError
 
 func MiddlewareCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -22,11 +36,26 @@ func MiddlewareCORS(next http.Handler) http.Handler {
 	})
 }
 
+func (wh webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if e := wh(w, r); e != nil {
+		encoder := json.NewEncoder(w)
+		w.WriteHeader(http.StatusInternalServerError)
+
+		if err := encoder.Encode(struct {
+			Message   string
+			ErrorCode int
+		}{e.Message, e.Code}); err != nil {
+			log.Printf("[WEB] %v", err)
+		}
+
+	}
+}
+
 func Run() {
 	apiMux := http.NewServeMux()
 
-	apiMux.HandleFunc("/api/registration", UserRegistrator)
-	apiMux.HandleFunc("/api/authentications", UserAuthentications)
+	apiMux.Handle("/api/registration", webHandler(UserRegistrator))
+	apiMux.Handle("/api/authentications", webHandler(UserAuthentications))
 
 	webServer := &http.Server{
 		Addr:           system.GetConfig().Port(),
