@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"munchkin/modal"
+	"munchkin/model"
 	"net/http"
 	"time"
 )
@@ -22,7 +22,7 @@ func UserRegistrator(w http.ResponseWriter, r *http.Request) *webError {
 		return &webError{fmt.Errorf("[web] error coockie read %v", err), errorCookie, 001}
 	}
 
-	users, err := modal.New().GetUserByCookie(cookie.Value)
+	users, err := model.New().GetUserByCookie(cookie.Value)
 	if err != nil {
 		return &webError{fmt.Errorf("[web] auth %v", err), internalServerError, 001}
 	}
@@ -36,7 +36,7 @@ func UserRegistrator(w http.ResponseWriter, r *http.Request) *webError {
 		return &webError{fmt.Errorf("[web] decode json %v", err), errorJsonRead, 001}
 	}
 
-	if err := modal.New().SetUser(req.Login, req.Password); err != nil {
+	if err := model.New().SetUser(req.Login, req.Password); err != nil {
 		return &webError{fmt.Errorf("[db] %v", err), internalServerError, 201}
 	}
 	return nil
@@ -50,7 +50,7 @@ func UserAuthentications(w http.ResponseWriter, r *http.Request) *webError {
 		return &webError{fmt.Errorf("[web] decode json %v", err), errorJsonRead, 001}
 	}
 
-	hashCookie, auth, err := modal.New().Authentications(req.Login, req.Password)
+	hashCookie, auth, err := model.New().Authentications(req.Login, req.Password)
 	if err != nil {
 		return &webError{fmt.Errorf("[db] %v", err), internalServerError, 201}
 	}
