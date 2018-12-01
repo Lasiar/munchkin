@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	alreadyRegistered 	string = "Вы уже зарегестрированы"
+	alreadyRegistered   string = "Вы уже зарегестрированы"
 	errorJsonRead       string = "Ошибка чтения запроса"
 	errorCookie         string = "Ошибка чтения cookie"
 	internalServerError string = "Внутренняя ошибка"
@@ -22,21 +22,6 @@ type webError struct {
 }
 
 type webHandler func(http.ResponseWriter, *http.Request) *webError
-
-func MiddlewareCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Access-Control-Allow-Origin", "*")
-		w.Header().Add("Access-Control-Allow-Headers", "*")
-		w.Header().Add("Access-Control-Allow-Credentials", "true")
-		w.Header().Add("Access-Control-Allow-Methods", "POST, OPTIONS")
-
-		if r.Method == http.MethodOptions {
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 func (wh webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if e := wh(w, r); e != nil {
@@ -54,6 +39,21 @@ func (wh webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+}
+
+func MiddlewareCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "*")
+		w.Header().Add("Access-Control-Allow-Headers", "*")
+		w.Header().Add("Access-Control-Allow-Credentials", "true")
+		w.Header().Add("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+		if r.Method == http.MethodOptions {
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func Run() {

@@ -10,6 +10,14 @@ import (
 	"strconv"
 )
 
+const (
+	sqlGetUserByCookie string = "select distinct ulg.id, ulg.login, ulg.pass from  users.session uss  inner join users.logon as ulg on ulg.id = uss.id_user and uss.session_cookie = $1"
+	sqlGetAllLogon     string = "select * from users.logon"
+	sqlGetUserByLogin  string = "select * from users.logon  where login = $1"
+	sqlNewUser         string = "INSERT INTO users.logon (login, pass) 	VALUES($1, $2)"
+	sqlNewSession      string = "insert into users.session (id_user, session_cookie) values($1,$2)"
+)
+
 type UserLogon struct {
 	Id    int
 	Login string
@@ -38,7 +46,7 @@ GRANT ALL ON TABLE users.logon TO app;
 }
 
 func (d *Database) GetAllLogon() []UserLogon {
-	rows, err := d.DB.Query("select * from users.logon")
+	rows, err := d.DB.Query(sqlGetAllLogon)
 	if err != nil {
 		log.Printf("[DB] GetAllLogon query %v", err)
 	}
@@ -61,7 +69,7 @@ func (d *Database) GetAllLogon() []UserLogon {
 }
 
 func (d *Database) GetUserByCookie(cookie ...string) ([]UserLogon, error) {
-	rows, err := d.DB.Query("select distinct ulg.id, ulg.login, ulg.pass from  users.session uss  inner join users.logon as ulg on ulg.id = uss.id_user and uss.session_cookie = $1", cookie[0]) // TODO: fix in array search
+	rows, err := d.DB.Query(sqlGetUserByCookie, cookie[0]) // TODO: fix in array search
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +96,7 @@ func (d *Database) GetUserByCookie(cookie ...string) ([]UserLogon, error) {
 }
 
 func (d *Database) GetUserByLogin(login ...string) ([]UserLogon, error) {
-	rows, err := d.DB.Query("select * from users.logon  where login = $1", login[0]) // TODO: fix in array search
+	rows, err := d.DB.Query(sqlGetUserByLogin, login[0]) // TODO: fix in array search
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +131,8 @@ func (d *Database) SetUser(login, password string) error {
 		return err
 	}
 
-	if _, err := d.DB.Exec("INSERT INTO users.logon (login, pass) 	VALUES($1, $2)", login, string(hashPass)); err != nil {
+	if _, err := d.DB.Exec(sqlNewUser, login, string(hashPass));
+		err != nil {
 		return err
 	}
 	return nil
@@ -135,8 +144,6 @@ func (d *Database) Authentications(login, password string) (string, bool, error)
 	if err != nil {
 		return "", false, err
 	}
-
-	fmt.Println(ul)
 
 	err = bcrypt.CompareHashAndPassword([]byte(ul[0].Pass), []byte(password))
 	if err != nil {
@@ -160,8 +167,8 @@ func (d *Database) Authentications(login, password string) (string, bool, error)
 }
 
 func (d *Database) SetCookie(idUser int, cookie string) error {
-
-	if _, err := d.DB.Exec("insert into users.session (id_user, session_cookie) values($1,$2)", idUser, cookie); err != nil {
+	if _, err := d.DB.Exec(sqlNewSession, idUser, cookie);
+		err != nil {
 		return err
 	}
 	return nil
